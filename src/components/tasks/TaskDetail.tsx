@@ -155,8 +155,12 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({
             </label>
             <Select
               value={editData.assigneeId || ""}
-              onChange={(value) =>
-                setEditData({ ...editData, assigneeId: value || undefined })
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  assigneeId:
+                    (e.target as HTMLSelectElement).value || undefined,
+                })
               }
             >
               <option value="">Unassigned</option>

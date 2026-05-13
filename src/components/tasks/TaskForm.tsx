@@ -122,7 +122,7 @@ export function TaskForm({
         if (isEditing && task) {
           const updateData: UpdateTaskInput = {
             title: data.title,
-            description: data.description || null,
+            description: data.description,
             status: data.status as TaskStatus,
             priority: data.priority as TaskPriority,
             dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
