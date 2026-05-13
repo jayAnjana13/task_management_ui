@@ -1,9 +1,7 @@
-"use client";
 import { io, Socket } from "socket.io-client";
 import { storage } from "@/lib/utils";
-import { Message } from "@/types";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || " ";
 
 class SocketService {
   private socket: Socket | null = null;
@@ -81,10 +79,10 @@ class SocketService {
 
   // Send a direct message
   sendDirectMessage(
-    projectId: string,
     recipientId: string,
     content: string,
     replyToId?: string,
+    projectId?: string,
   ): void {
     this.socket?.emit("send-direct-message", {
       projectId,
@@ -100,7 +98,7 @@ class SocketService {
   }
 
   // Delete a message
-  deleteMessage(messageId: string, projectId: string): void {
+  deleteMessage(messageId: string, projectId?: string): void {
     this.socket?.emit("delete-message", { messageId, projectId });
   }
 
@@ -110,7 +108,7 @@ class SocketService {
   }
 
   // Start typing indicator in direct chat
-  startDirectTyping(projectId: string, recipientId: string): void {
+  startDirectTyping(recipientId: string, projectId?: string): void {
     this.socket?.emit("typing-start", { projectId, recipientId });
   }
 
@@ -120,7 +118,7 @@ class SocketService {
   }
 
   // Stop typing indicator in direct chat
-  stopDirectTyping(projectId: string, recipientId: string): void {
+  stopDirectTyping(recipientId: string, projectId?: string): void {
     this.socket?.emit("typing-stop", { projectId, recipientId });
   }
 
