@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout';
 import { projectService } from '@/services/projectService';
 import { taskService } from '@/services/taskService';
+import { api } from '@/lib/api';
 import { Project, Task, CreateTaskInput, TaskStatus, TaskPriority } from '@/types';
 import {
   Card,
@@ -612,9 +613,30 @@ function ProjectMembers({
   const [isLoading, setIsLoading] = useState(true);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
+
+  const fetchAvailableUsers = useCallback(
+    async (membersList: any[]) => {
+      if (!canManageMembers) return;
+
+      try {
+        setIsLoadingUsers(true);
+        const response = await api.get('/users?limit=100');
+        const users = response.data?.data || [];
+        const memberIds = new Set(membersList.map((member: any) => member.userId));
+        const availableUsers = users.filter((user: any) => !memberIds.has(user.id));
+        setAllUsers(availableUsers);
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    },
+    [canManageMembers]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -622,33 +644,7 @@ function ProjectMembers({
         setIsLoading(true);
         const membersList = await projectService.getProjectMembers(projectId);
         setMembers(membersList);
-        
-        if (canManageMembers) {
-          // Fetch all users (those not already members)
-          const fetchAllUsers = async () => {
-            try {
-              const response = await fetch(
-                '/api/v1/users?limit=100',
-                {
-                  headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`,
-                  },
-                }
-              );
-              if (response.ok) {
-                const data = await response.json();
-                const memberIds = new Set(membersList.map((m: any) => m.user_id));
-                // Filter out users already in project
-                const availableUsers = data.data.filter((u: any) => !memberIds.has(u.id));
-                setAllUsers(availableUsers);
-              }
-            } catch (err) {
-              console.error('Failed to fetch users:', err);
-            }
-          };
-
-          fetchAllUsers();
-        }
+        await fetchAvailableUsers(membersList);
       } catch (err) {
         console.error('Failed to fetch members:', err);
       } finally {
@@ -657,7 +653,14 @@ function ProjectMembers({
     };
 
     fetchData();
-  }, [projectId, canManageMembers]);
+  }, [projectId, fetchAvailableUsers]);
+
+  const handleOpenAddMember = async () => {
+    setSelectedUserId('');
+    setFilterQuery('');
+    setIsAddingMember(true);
+    await fetchAvailableUsers(members);
+  };
 
   const handleAddMember = async () => {
     if (!canManageMembers) return;
@@ -670,10 +673,11 @@ function ProjectMembers({
       setFilterQuery('');
       setIsAddingMember(false);
       onMembersChange();
-      
+
       // Refresh members
       const membersList = await projectService.getProjectMembers(projectId);
       setMembers(membersList);
+      await fetchAvailableUsers(membersList);
     } catch (err: any) {
       console.error('Failed to add member:', err);
     } finally {
@@ -690,10 +694,11 @@ function ProjectMembers({
     try {
       await projectService.removeProjectMember(projectId, memberId);
       onMembersChange();
-      
+
       // Refresh members
       const membersList = await projectService.getProjectMembers(projectId);
       setMembers(membersList);
+      await fetchAvailableUsers(membersList);
     } catch (err) {
       console.error('Failed to remove member:', err);
     }
@@ -702,8 +707,8 @@ function ProjectMembers({
   // Filter available users
   const filteredUsers = allUsers.filter(
     (user) =>
-      user.first_name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      user.last_name.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      user.firstName.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(filterQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(filterQuery.toLowerCase())
   );
 
@@ -727,10 +732,7 @@ function ProjectMembers({
         </div>
         {canManageMembers && (
           <Button
-            onClick={() => {
-              setIsAddingMember(true);
-              setFilterQuery('');
-            }}
+            onClick={handleOpenAddMember}
             leftIcon={<Plus className="h-4 w-4" />}
           >
             Add Member
@@ -754,14 +756,14 @@ function ProjectMembers({
                 >
                   <div className="flex items-center gap-3">
                     <Avatar
-                      firstName={member.user?.first_name}
-                      lastName={member.user?.last_name}
-                      src={member.user?.avatar_url}
+                      firstName={member.user?.firstName}
+                      lastName={member.user?.lastName}
+                      src={member.user?.avatarUrl}
                       size="md"
                     />
                     <div>
                       <p className="font-medium text-slate-900">
-                        {member.user?.first_name} {member.user?.last_name}
+                        {member.user?.firstName} {member.user?.lastName}
                       </p>
                       <p className="text-sm text-slate-500">{member.user?.email}</p>
                     </div>
@@ -806,7 +808,11 @@ function ProjectMembers({
             onChange={(e) => setFilterQuery(e.target.value)}
           />
 
-          {filteredUsers.length === 0 ? (
+          {isLoadingUsers ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : filteredUsers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Users className="h-8 w-8 text-slate-300" />
               <p className="mt-2 text-sm text-slate-500">
@@ -829,14 +835,14 @@ function ProjectMembers({
                   )}
                 >
                   <Avatar
-                    firstName={user.first_name}
-                    lastName={user.last_name}
-                    src={user.avatar_url}
+                    firstName={user.firstName}
+                    lastName={user.lastName}
+                    src={user.avatarUrl}
                     size="sm"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-slate-900">
-                      {user.first_name} {user.last_name}
+                      {user.firstName} {user.lastName}
                     </p>
                     <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>

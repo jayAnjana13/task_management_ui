@@ -1,12 +1,19 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useTransition, useDeferredValue } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useTransition,
+  useDeferredValue,
+} from "react";
 
 // Debounced search hook
 export function useDebouncedSearch<T>(
   searchFn: (query: string) => Promise<T>,
-  delay: number = 300
+  delay: number = 300,
 ) {
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +41,7 @@ export function useDebouncedSearch<T>(
         const data = await searchFn(debouncedQuery);
         setResults(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Search failed');
+        setError(err instanceof Error ? err.message : "Search failed");
       } finally {
         setIsLoading(false);
       }
@@ -44,8 +51,8 @@ export function useDebouncedSearch<T>(
   }, [debouncedQuery, searchFn]);
 
   const clearSearch = useCallback(() => {
-    setQuery('');
-    setDebouncedQuery('');
+    setQuery("");
+    setDebouncedQuery("");
     setResults(null);
     setError(null);
   }, []);
@@ -79,14 +86,14 @@ export function useDebouncedValue<T>(value: T, delay: number = 300): T {
 export function useSmoothSearch(value: string) {
   const deferredValue = useDeferredValue(value);
   const isStale = value !== deferredValue;
-  
+
   return { deferredValue, isStale };
 }
 
 // Transition hook for non-blocking updates
 export function useSearchTransition() {
   const [isPending, startTransition] = useTransition();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const updateSearch = useCallback((query: string) => {
     startTransition(() => {
@@ -100,7 +107,7 @@ export function useSearchTransition() {
 // Local storage hook
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') return initialValue;
+    if (typeof window === "undefined") return initialValue;
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
@@ -112,16 +119,17 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   const setValue = useCallback(
     (value: T | ((val: T) => T)) => {
       try {
-        const valueToStore = value instanceof Function ? value(storedValue) : value;
+        const valueToStore =
+          value instanceof Function ? value(storedValue) : value;
         setStoredValue(valueToStore);
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
         }
       } catch (error) {
-        console.error('useLocalStorage error:', error);
+        console.error("useLocalStorage error:", error);
       }
     },
-    [key, storedValue]
+    [key, storedValue],
   );
 
   return [storedValue, setValue] as const;
@@ -139,7 +147,7 @@ export function usePrevious<T>(value: T): T | undefined {
 // Intersection observer hook for infinite scroll
 export function useIntersectionObserver(
   callback: () => void,
-  options: IntersectionObserverInit = {}
+  options: IntersectionObserverInit = {},
 ) {
   const targetRef = useRef<HTMLDivElement | null>(null);
 
@@ -162,9 +170,7 @@ export function useIntersectionObserver(
 }
 
 // Click outside hook
-export function useClickOutside<T extends HTMLElement>(
-  callback: () => void
-) {
+export function useClickOutside<T extends HTMLElement>(callback: () => void) {
   const ref = useRef<T | null>(null);
 
   useEffect(() => {
@@ -174,8 +180,8 @@ export function useClickOutside<T extends HTMLElement>(
       }
     };
 
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [callback]);
 
   return ref;
@@ -185,12 +191,12 @@ export function useClickOutside<T extends HTMLElement>(
 export function useKeyboardShortcut(
   key: string,
   callback: () => void,
-  modifiers: { ctrl?: boolean; shift?: boolean; alt?: boolean } = {}
+  modifiers: { ctrl?: boolean; shift?: boolean; alt?: boolean } = {},
 ) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const { ctrl, shift, alt } = modifiers;
-      
+
       if (
         event.key.toLowerCase() === key.toLowerCase() &&
         (!ctrl || event.ctrlKey || event.metaKey) &&
@@ -202,8 +208,8 @@ export function useKeyboardShortcut(
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [key, callback, modifiers]);
 }
 
@@ -212,7 +218,7 @@ export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const media = window.matchMedia(query);
     setMatches(media.matches);
@@ -221,8 +227,8 @@ export function useMediaQuery(query: string): boolean {
       setMatches(event.matches);
     };
 
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
   }, [query]);
 
   return matches;
@@ -238,7 +244,7 @@ export function useClipboard() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error("Failed to copy:", error);
     }
   }, []);
 
